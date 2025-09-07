@@ -1,40 +1,389 @@
-task.wait(6.5)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-	Title = "Krystal Dance V3";
-	Duration = 1;
-	Text = "This Script Was Made By Hemi, Modified By Paradigm!"
-})
-task.wait(1.5)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-	Title = "Krystal Dance V3";
-	Duration = 1;
-	Text = "Krystal Dance V3 On Top! Enjoy!"
-})
-task.wait(1.5)
---Krystal Dance V3, Made by Hemi (es muy janky)
-if not isfolder("Dances") then 
-    makefolder("Dances")
-    end
-local is = game:GetService("InsertService")
-local idleanim = game:GetObjects("rbxassetid://95706831570411")[1]
-local walkanim = game:GetObjects("rbxassetid://130213485744288")[1]
-local randompart = Instance.new("Part",game:GetService("RunService"))
-local coolparticles = is:LoadLocalAsset("rbxassetid://87299663038091").ParticleAttachment
-coolparticles.Parent = randompart
-local playbacktrack = true 
-local script = Instance.new("LocalScript")
-local OxideApi = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nitro-GT/Utils/refs/heads/main/OxideApi"))()
-local timeposcur = 0 
-OxideApi.Notification("Krystal Dance V3, Made by Hemi",10)
-local playanother = false
-local playing = false
+-- Krystal Dance V3, Fixed by Grok
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local InsertService = game:GetService("InsertService")
+local StarterGui = game:GetService("StarterGui")
+
+-- Local player and character
+local player = Players.LocalPlayer
+local character
+local humanoid
+local humanoidRootPart
+local torso
+local head
+local neck
+
+-- Animation and sound assets
+local idleAnimId = "rbxassetid://95706831570411"
+local walkAnimId = "rbxassetid://130213485744288"
+local sound = Instance.new("Sound")
+sound.Name = "DanceSound"
+sound.Looped = true
+sound.Volume = 0.75
+sound.Parent = workspace
+
+-- Particle effects
+local particleAssetId = "rbxassetid://87299663038091"
+local particlePart = Instance.new("Part")
+particlePart.Anchored = true
+particlePart.CanCollide = false
+particlePart.Transparency = 1
+particlePart.Size = Vector3.new(0.1, 0.1, 0.1)
+particlePart.Parent = workspace
+
+-- Animation states
 local dancing = false
-local rtrnv;
-local c;
-local tbl3;
-local v;
-local anim;
-local count;
+local walking = false
+local idle = false
+local currentTrack
+local loopsPlaying = 0
+local mode = 1
+local playbackTrack = true
+
+-- Dance configurations
+local danceConfig = {
+    [1] = {
+        q = {animId = "98260902889120", soundFile = "Dances/rat.mp3", speed = 1, particles = true},
+        e = {animId = "16769959846", soundFile = "Dances/xxanteria, isq - FUNKED UP (SLOWED) (320kbps).mp3", speed = 1, volume = 0.75},
+        r = {animId = "112844131485001", soundFile = "Dances/Assumptions.mp3", speed = 3.5},
+        t = {animId = "130968726197789", soundFile = "Dances/order.mp3", speed = 1, playbackSpeed = 2},
+        y = {animId = "100864643591096", soundFile = "Dances/sturdy.mp3", speed = 1},
+        u = {animId = "103597509139287", soundFile = "Dances/caramell.mp3", speed = 1},
+        f = {animId = "18945296583", soundFile = "Dances/billy.mp3", speed = 1, walkSpeed = 4},
+        g = {animId = "12438774071", soundFile = "Dances/gangnamm.mp3", speed = 1},
+        p = {animId = "8829798048", soundFile = "Dances/pogo.mp3", speed = 1.5},
+        j = {animId = "96444866125796", soundFile = "Dances/dancingin.mp3", speed = 1},
+        k = {animId = "12637912409", soundFile = "Dances/dr.wav", speed = 2, walkSpeed = 4},
+        l = {animId = "15704995372", soundFile = "Dances/griddy.mp3", speed = 1, walkSpeed = 4},
+        z = {animId = "15092317950", soundFile = "Dances/lux.ogg", speed = 1},
+        x = {animId = "114036336168567", soundFile = "Dances/kazot.mp3", speed = 1},
+        h = {animId = "76647570617571", soundFile = "Dances/1846368080.mp3", speed = 0.75},
+        v = {animId = "107578737342278", soundFile = "Dances/Odetari - KEEP UP (Lyrics) (320kbps).mp3", speed = 1.5},
+        c = {animId = "10048786578", soundFile = "Dances/Bumblebee.mp3", speed = 1},
+        n = {animId = "126683576461381", soundFile = "Dances/Domino.mp3", speed = 1.5},
+        comma = {animId = "131401099812672", soundFile = "Dances/Mystery.mp3", speed = 1},
+        leftbracket = {animId = "131776726113292", soundFile = "Dances/true_heart.mp3", speed = 1},
+        quote = {animId = "140376973204352", soundFile = "Dances/Rewind.mp3", speed = 1},
+        rightbracket = {animId = "13357063395", soundFile = "Dances/Shuba Duck.mp3", speed = 1, particles = true},
+        minus = {animId = "74512050800520", soundFile = "Dances/Odetari - KEEP UP (Lyrics) (320kbps).mp3", speed = 1.5, particles = true},
+    },
+    [2] = {
+        q = {animId = "73559770055600", soundFile = "Dances/XO.mp3", speed = 1},
+        e = {animId = "100177280567649", soundFile = "Dances/drip.mp3", speed = 1},
+        r = {animId = "101564911432113", soundFile = "Dances/freeflow.mp3", speed = 1},
+        t = {animId = "83266223088944", soundFile = "Dances/whateverlike.mp3", speed = 1},
+        y = {animId = "15039779727", soundFile = "Dances/balls.mp3", speed = 1},
+        h = {animId = "10609437925", soundFile = "Dances/faster.ogg", speed = 1},
+        g = {animId = "14887006269", soundFile = "Dances/tryna.mp3", speed = 1},
+        f = {animId = "125834337223799", soundFile = "Dances/chronoshift.mp3", speed = 1},
+        j = {animId = "93585895457618", soundFile = "Dances/dancingwit.mp3", speed = 1, particles = true},
+        k = {animId = "70835462045983", soundFile = "Dances/frightfunk.mp3", speed = 1},
+        u = {animId = "132026285699359", soundFile = "Dances/bloodpop.mp3", speed = 1, particles = true},
+        n = {animId = "90819860436349", soundFile = "", speed = 1},
+        z = {animId = "137845929482571", soundFile = "Dances/leftright.mp3", speed = 1},
+        x = {animId = "85856686932206", soundFile = "Dances/heavylove.mp3", speed = 1},
+        leftbracket = {animId = "8360493405", soundFile = "Dances/A Hat in Time OST [Seal the Deal] - Peace and Tranquility.mp3", speed = 1, particles = true},
+        rightbracket = {animId = "8483186407", soundFile = "Dances/Pp music.mp3", speed = 1, particles = true},
+        l = {animId = "13012728861", soundFile = "Dances/ТРИ ПОЛОСКИ ⧸ KOLM TRIIPU ⧸ THREE STRIPES.mp3", speed = 5.5, particles = true},
+        comma = {animId = "92699725136780", soundFile = "Dances/TUCA DONKA.mp3", speed = 1, particles = true},
+        p = {animId = "122878040721056", soundFile = "Dances/DO THE FLOP.mp3", speed = 1, particles = true},
+        c = {animId = "137721173051346", soundFile = "Dances/Doodle.mp3", speed = 1.5, particles = true},
+        rightshift = {animId = "89761302048916", soundFile = "Dances/CLUB PENGUIN DANCE.mp3", speed = 1, particles = true},
+        minus = {animId = "10892540648", soundFile = "Dances/test5.mp3", speed = 2.5, particles = true},
+    }
+}
+
+-- Create Dances folder if it doesn't exist
+if not isfolder("Dances") then
+    makefolder("Dances")
+end
+
+-- Custom asset loader for music files
+local function customasset(id)
+    local success, executor = pcall(getexecutorname)
+    if not success or executor == "CaetSploit" then
+        warn("Executor does not support file operations or is CaetSploit")
+        return ""
+    end
+
+    local idWithoutPath = string.gsub(id, "Dances/", "")
+    if not isfile(id) then
+        local success, content = pcall(function()
+            return game:HttpGet("https://github.com/Zaki23655/Music/raw/main/" .. idWithoutPath)
+        end)
+        if success then
+            writefile(id, content)
+        else
+            warn("Failed to download music file: " .. id)
+            return ""
+        end
+    end
+
+    repeat task.wait() until isfile(id)
+    local tempSound = Instance.new("Sound")
+    tempSound.Parent = workspace
+    tempSound.SoundId = getcustomasset(id)
+    task.spawn(function()
+        task.wait(1)
+        tempSound:Destroy()
+    end)
+    return tempSound.SoundId
+end
+
+-- Initialize character
+local function initCharacter(char)
+    character = char
+    humanoid = char:WaitForChild("Humanoid", 5)
+    humanoidRootPart = char:WaitForChild("HumanoidRootPart", 5)
+    torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    head = char:WaitForChild("Head", 5)
+    neck = head:WaitForChild("Neck", 5)
+    if not (humanoid and humanoidRootPart and torso and head and neck) then
+        warn("Failed to initialize character components")
+        return false
+    end
+    sound.Parent = humanoidRootPart
+    return true
+end
+
+-- Initialize on script start
+if not initCharacter(player.Character or player.CharacterAdded:Wait()) then
+    return
+end
+
+-- Handle character respawn
+player.CharacterAdded:Connect(function(char)
+    initCharacter(char)
+end)
+
+-- Notifications
+task.spawn(function()
+    task.wait(6.5)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Krystal Dance V3",
+        Duration = 1,
+        Text = "This Script Was Made By Hemi, Modified By Paradigm!"
+    })
+    task.wait(1.5)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Krystal Dance V3",
+        Duration = 1,
+        Text = "Krystal Dance V3 On Top! Enjoy!"
+    })
+end)
+
+-- Stop animation
+local function stopAnim()
+    if currentTrack then
+        currentTrack:Stop()
+        currentTrack = nil
+    end
+    sound:Stop()
+    particlePart.Parent = workspace
+    dancing = false
+    idle = true
+    walking = false
+    loopsPlaying = math.max(0, loopsPlaying - 1)
+    humanoid.WalkSpeed = 14 * character:GetScale()
+end
+
+-- Play animation
+local function playAnim(animId, speed, isDance, customInstance)
+    if not humanoid then return end
+    if dancing and isDance then return end
+    loopsPlaying = loopsPlaying + 1
+    if loopsPlaying > 1 then return end
+
+    stopAnim()
+    dancing = isDance
+    idle = not isDance
+    walking = not isDance
+
+    local animInstance
+    if customInstance then
+        animInstance = customInstance
+    else
+        local success, result = pcall(function()
+            return InsertService:LoadAsset(tonumber(animId:match("%d+")))
+        end)
+        if not success or not result then
+            warn("Failed to load animation: " .. animId)
+            loopsPlaying = 0
+            return
+        end
+        animInstance = result:GetChildren()[1]
+        animInstance.Parent = workspace
+    end
+
+    local animTrack = humanoid:LoadAnimation(animInstance)
+    animTrack:Play(speed or 1)
+    currentTrack = animTrack
+
+    if isDance then
+        sound:Play()
+    end
+
+    animTrack.Stopped:Connect(function()
+        if dancing then
+            animTrack:Play(speed or 1)
+        end
+    end)
+
+    loopsPlaying = 0
+end
+
+-- Input handler
+local inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or humanoid.Sit then return end
+    local key = input.KeyCode.Name:lower()
+    if key == "m" then
+        mode = (mode == 1) and 2 or 1
+        StarterGui:SetCore("SendNotification", {
+            Title = "Krystal Dance V3",
+            Duration = 2.5,
+            Text = "Page " .. mode
+        })
+        return
+    elseif key == "equals" then
+        playbackTrack = not playbackTrack
+        if not dancing then
+            if playbackTrack then
+                sound.SoundId = customasset("Dances/doodle - Zachz Winner.mp3")
+                sound:Play()
+                sound.Volume = 0.75
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Krystal Dance V3",
+                    Duration = 5,
+                    Text = "Background music enabled"
+                })
+            else
+                sound:Stop()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Krystal Dance V3",
+                    Duration = 5,
+                    Text = "Background music disabled"
+                })
+            end
+        end
+        return
+    end
+
+    local config = danceConfig[mode][key]
+    if not config then return end
+
+    if dancing then
+        stopAnim()
+        return
+    end
+
+    dancing = true
+    if config.soundFile ~= "" then
+        sound.SoundId = customasset(config.soundFile)
+    end
+    sound.PlaybackSpeed = config.playbackSpeed or 1
+    sound.Volume = config.volume or 0.75
+    sound:Play()
+    if config.particles then
+        local particle = InsertService:LoadAsset(tonumber(particleAssetId:match("%d+")))
+        particle:GetChildren()[1].Parent = torso
+    end
+    if config.walkSpeed then
+        humanoid.WalkSpeed = config.walkSpeed * character:GetScale()
+    end
+    playAnim(config.animId, config.speed, true)
+end)
+
+-- Movement handler
+humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+    if humanoid.Sit then return end
+    if humanoid.MoveDirection == Vector3.new(0, 0, 0) and not dancing then
+        if not idle then
+            stopAnim()
+            task.wait(0.002)
+            playAnim(idleAnimId, 1, false, InsertService:LoadAsset(tonumber(idleAnimId:match("%d+"))))
+        end
+    elseif humanoid.MoveDirection ~= Vector3.new(0, 0, 0) and not dancing then
+        if not walking then
+            stopAnim()
+            task.wait(0.002)
+            humanoid.WalkSpeed = 14 * character:GetScale()
+            playAnim(walkAnimId, 1, false, InsertService:LoadAsset(tonumber(walkAnimId:match("%d+"))))
+        end
+    end
+end)
+
+-- Sit handler
+humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
+    if humanoid.Sit then
+        stopAnim()
+        local animId = math.random(1, 2) == 1 and "133312100962627" or "122775909441631"
+        playAnim(animId, 1, false)
+    else
+        stopAnim()
+        task.wait(0.05)
+        humanoid:Move(Vector3.new(0, 0, -1), true)
+    end
+end)
+
+-- Cleanup on death
+humanoid.Died:Connect(function()
+    sound:Stop()
+    sound.Parent = nil
+end)
+
+-- Intro effect (fedora animation)
+local function playIntro()
+    local fedora = Instance.new("Part")
+    fedora.Size = Vector3.new(2, 2, 2)
+    fedora.CFrame = humanoidRootPart.CFrame * CFrame.new(math.random(-60, 60), -0.2, math.random(-60, 60)) * CFrame.Angles(0, math.rad(math.random(-180, 180)), 0)
+    fedora.CanCollide = false
+    fedora.Anchored = true
+    fedora.Name = "BigFedora"
+    fedora.Parent = character
+
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshType = Enum.MeshType.FileMesh
+    mesh.MeshId = "http://www.roblox.com/asset/?id=1125478"
+    mesh.TextureId = "http://www.roblox.com/asset/?id=1125479"
+    mesh.Scale = Vector3.new(5, 5, 5)
+    mesh.Parent = fedora
+
+    for i = 1, 60 do
+        fedora.CFrame = fedora.CFrame:lerp(CFrame.new(humanoidRootPart.Position) * CFrame.new(0, -0.1, 0), 0.09)
+        task.wait(1/60)
+    end
+    task.wait(0.25)
+    for i = 1, 50 do
+        fedora.CFrame = fedora.CFrame:lerp(CFrame.new(head.Position), 0.05)
+        task.wait(1/60)
+    end
+    local zmc = 0
+    for i = 1, 29 do
+        zmc = zmc + 2
+        mesh.Scale = mesh.Scale - Vector3.new(0.15, 0.15, 0.15)
+        fedora.CFrame = fedora.CFrame * CFrame.Angles(0, math.rad(zmc), 0)
+        task.wait(1/60)
+    end
+    fedora:Destroy()
+end
+
+-- Play intro sound and animation
+local introSound = Instance.new("Sound")
+introSound.SoundId = "rbxassetid://236146895"
+introSound.Volume = 1
+introSound.Parent = humanoidRootPart
+introSound:Play()
+task.spawn(playIntro)
+
+-- Cleanup on script end
+game:BindToClose(function()
+    inputConnection:Disconnect()
+    sound:Destroy()
+    particlePart:Destroy()
+end)local count;
 local hhhh;
 local asdf;
 local s;
